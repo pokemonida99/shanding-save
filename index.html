@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="救救小編">
+<meta name="theme-color" content="#24352b">
+<title>救救小編｜山頂國小</title>
+<link rel="icon" href="icon-192.png?v=1">
+<link rel="apple-touch-icon" href="icon-180.png?v=1">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=1">
+</head>
+<body>
+<div id="stage">
+  <div id="bg"></div>
+  <canvas id="cv"></canvas>
+
+  <!-- 遊戲中 -->
+  <div id="hud" class="hide">
+    <div class="h1">
+      <button class="ib" id="bMenu" aria-label="選關"><svg viewBox="0 0 40 40"><path d="M25 8 L12 20 L25 32"/></svg></button>
+      <button class="ib" id="bRetry" aria-label="重來"><svg viewBox="0 0 40 40"><path d="M30 20 A10 10 0 1 1 26 12"/><path d="M27 5 L27 13 L19 13"/></svg></button>
+      <div class="lv"><b id="lvNum">第 1 關</b><span id="lvName"></span></div>
+      <button class="ib" id="bMute" aria-label="聲音"><svg viewBox="0 0 40 40"><path d="M8 16 H14 L22 9 V31 L14 24 H8 Z"/><path class="wave" d="M27 14 Q31 20 27 26"/><path class="x" d="M27 15 L35 25 M35 15 L27 25"/></svg></button>
+    </div>
+    <div class="h2">
+      <div class="inkwrap">
+        <i class="tray"><em id="inkBar"></em></i>
+        <div id="inkSeals"><b>優</b><b>優</b><b>優</b></div>
+      </div>
+      <div id="timer"><span id="timerN">10</span></div>
+    </div>
+    <button id="bHint" class="hint">老師示範</button>
+  </div>
+  <div id="tip" class="hide"><p id="tipText"></p></div>
+
+  <!-- 結算：聯絡簿 -->
+  <div id="result" class="hide">
+    <div class="rh"><span>聯絡簿</span><em id="rDate"></em></div>
+    <h2 id="rTitle">下課！</h2>
+    <div class="seals" id="rSeals"></div>
+    <p id="rLine"></p>
+    <div class="row">
+      <button class="btn ghost" id="rRetry">重來</button>
+      <button class="btn" id="rNext">下一關</button>
+    </div>
+  </div>
+
+  <!-- 標題 -->
+  <div id="title" class="screen hide">
+    <div class="school">山頂國小</div>
+    <h1><img class="logo" src="art/logo.webp" alt="救救小編"></h1>
+    <p class="sub">兔兔老師畫粉筆線，幫小編擋住整窩蜜蜂</p>
+    <div class="t-btns">
+      <button class="btn big" id="bStart">開始上課</button>
+      <button class="btn ghost" id="bSelect">選關</button>
+    </div>
+  </div>
+
+  <!-- 選關 -->
+  <div id="select" class="screen hide">
+    <div class="sel-head"><button class="tag" id="bBack">返回</button><h2>課表</h2><span id="selTotal"></span></div>
+    <div id="grid"></div>
+    <p class="sel-foot">畫一條粉筆線護住小編，撐過倒數就下課。粉筆用得越少，老師蓋的「優」越多。</p>
+  </div>
+
+  <!-- 載入 -->
+  <div id="loading" class="screen">
+    <div class="ld"><b>救救小編</b><i><em id="ldBar"></em></i><span id="ldText">粉筆準備中…</span></div>
+  </div>
+</div>
+<script src="vendor/matter.min.js"></script>
+<script src="js/sim.js?v=1"></script>
+<script src="js/levels.js?v=1"></script>
+<script src="js/audio.js?v=1"></script>
+<script>
+  // 太舊的瀏覽器不認得 importmap：補上 es-module-shims
+  if (!(window.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports('importmap'))) {
+    const sc = document.createElement('script'); sc.async = true; sc.src = 'vendor/es-module-shims.js'; document.head.appendChild(sc);
+  }
+</script>
+<script type="importmap">
+{"imports":{"three":"./vendor/three/build/three.module.min.js","three/addons/":"./vendor/three/examples/jsm/"}}
+</script>
+<script type="module" src="js/game.js?v=1"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "救救小編｜山頂國小",
+  "short_name": "救救小編",
+  "start_url": "./",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#24352b",
+  "theme_color": "#24352b",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
