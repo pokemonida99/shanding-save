@@ -24,6 +24,10 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 #bg { position: absolute; inset: 0; background: #33463a center bottom / cover no-repeat; }
 #bg::after { content: ""; position: absolute; inset: 0; background: rgba(20, 28, 22, .18); }   /* 背景壓暗一點，前面的 3D 東西才跳出來 */
 #cv { position: absolute; left: 0; top: 0; width: 720px; touch-action: none; }
+/* 舞台可能比 720 寬：介面都放在中間 720 那一欄 */
+#hud, #tip, #result, .screen { margin-left: calc(50% - 360px) !important; }
+#hud, .screen { width: 720px; }
+#loading { margin-left: 0 !important; width: auto; right: 0; }
 
 /* 粉筆字：白字＋一點點粉筆灰 */
 .chalk { color: var(--chalk); text-shadow: 0 0 1px rgba(255, 255, 255, .7), 0 0 6px rgba(255, 255, 255, .18); }
@@ -45,7 +49,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .tag { height: 70px; padding: 0 14px; font-size: 28px; font-weight: 700; }
 
 /* ---------- 遊戲中上方 ---------- */
-#hud { position: absolute; left: 0; top: 0; right: 0; padding: 26px 22px 0; pointer-events: none; }
+#hud { position: absolute; left: 0; top: 0; padding: 26px 22px 0; pointer-events: none; }
 #hud > * { pointer-events: auto; }
 .h1 { display: flex; align-items: center; gap: 10px; }
 .ib { width: 84px; height: 84px; flex: none; display: grid; place-items: center; }
@@ -83,12 +87,12 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .hint::before { content: ""; position: absolute; left: 50%; top: -10px; width: 64px; height: 20px; margin-left: -32px; background: rgba(255, 255, 255, .55); transform: rotate(3deg); }
 .hint.on { background: var(--chalk-y); outline: 3px solid var(--red); }
 .hint.off { opacity: .35; }
-#tip { position: absolute; left: 182px; right: 22px; top: 262px; padding: 12px 18px 12px 52px; transform: rotate(.6deg);
+#tip { position: absolute; left: 182px; width: 516px; top: 262px; padding: 12px 18px 12px 52px; transform: rotate(.6deg);
   background: url(art/ui-paper.webp) left top / 260px auto; color: var(--pencil); box-shadow: 2px 5px 6px rgba(0, 0, 0, .35); }
 #tip p { font-size: 27px; line-height: 1.4; }
 
 /* ---------- 結算：聯絡簿 ---------- */
-#result { position: absolute; left: 34px; right: 34px; top: 300px; padding: 26px 30px 30px 74px; color: var(--pencil);
+#result { position: absolute; left: 34px; width: 652px; top: 300px; padding: 26px 30px 30px 74px; color: var(--pencil);
   background: url(art/ui-paper.webp) left top / 300px auto; box-shadow: 4px 10px 12px rgba(0, 0, 0, .45); transform: rotate(-.6deg); }
 #result::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 30px; background: repeating-linear-gradient(#9a6a3c 0 22px, #7a4f2a 22px 28px); }   /* 裝訂邊 */
 .rh { display: flex; align-items: baseline; gap: 14px; font-size: 24px; color: #6e665c; border-bottom: 2px solid var(--rule); padding-bottom: 8px; }
@@ -107,13 +111,15 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 @keyframes stamp { from { transform: scale(2.4) rotate(-30deg); opacity: 0; } to { transform: scale(1) rotate(-10deg); opacity: 1; } }
 
 /* ---------- 標題 ---------- */
-.screen { position: absolute; inset: 0; }
+.screen { position: absolute; left: 0; top: 0; bottom: 0; }
 #title .school { position: absolute; left: 40px; top: 52px; padding: 6px 14px; font-size: 30px; font-weight: 700; letter-spacing: .2em; color: var(--pencil);
   background: url(art/ui-paper.webp) left top / 200px auto; transform: rotate(-3deg); box-shadow: 2px 4px 4px rgba(0, 0, 0, .35); }
 #title h1 { position: absolute; left: 0; right: 0; top: var(--logoTop, 430px); text-align: center; }
 #title .logo { width: 600px; filter: drop-shadow(0 0 6px rgba(255, 255, 255, .25)); }
 #title .sub { position: absolute; left: 0; right: 0; top: calc(var(--logoTop, 430px) + 210px); text-align: center; font-size: 30px; color: var(--chalk);
   text-shadow: 0 0 1px rgba(255, 255, 255, .7), 0 2px 6px rgba(0, 0, 0, .7); }
+#title .iosTip { position: absolute; left: 60px; right: 60px; top: 160px; padding: 10px 16px; font-size: 24px; line-height: 1.45; text-align: center; color: var(--pencil);
+  background: #f3d86e; transform: rotate(-1deg); box-shadow: 2px 4px 4px rgba(0, 0, 0, .35); }
 .t-btns { position: absolute; left: 0; right: 0; top: calc(var(--logoTop, 430px) + 320px); display: flex; flex-direction: column; align-items: center; gap: 22px; }
 
 /* ---------- 選關：整面黑板 ---------- */

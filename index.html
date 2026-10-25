@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1">
+<link rel="stylesheet" href="style.css?v=2">
 </head>
 <body>
 <div id="stage">
@@ -62,6 +62,7 @@
       <button class="btn big" id="bStart">開始上課</button>
       <button class="btn ghost" id="bSelect">選關</button>
     </div>
+    <p class="iosTip hide" id="iosTip">iPhone：Safari 按「分享 → 加入主畫面」，從主畫面打開就是全螢幕</p>
   </div>
 
   <!-- 選關 -->
@@ -77,9 +78,9 @@
   </div>
 </div>
 <script src="vendor/matter.min.js"></script>
-<script src="js/sim.js?v=1"></script>
-<script src="js/levels.js?v=1"></script>
-<script src="js/audio.js?v=1"></script>
+<script src="js/sim.js?v=2"></script>
+<script src="js/levels.js?v=2"></script>
+<script src="js/audio.js?v=2"></script>
 <script>
   // 太舊的瀏覽器不認得 importmap：補上 es-module-shims
   if (!(window.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports('importmap'))) {
@@ -89,6 +90,6 @@
 <script type="importmap">
 {"imports":{"three":"./vendor/three/build/three.module.min.js","three/addons/":"./vendor/three/examples/jsm/"}}
 </script>
-<script type="module" src="js/game.js?v=1"></script>
+<script type="module" src="js/game.js?v=3"></script>
 </body>
 </html>

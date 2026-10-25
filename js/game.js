@@ -1,11 +1,11 @@
 // 流程、觸控畫線、介面；3D 畫面在 view3d.js，物理在 sim.js
-import * as V from './view3d.js?v=1';
+import * as V from './view3d.js?v=3';
 
 const { SIM: RL, LEVELS, AUD } = window;
 const W = 720, H = 1280, PAD = 24;     // PAD：底部留給 iPhone 的橫條
 const $ = (id) => document.getElementById(id);
 const stage = $('stage'), cv = $('cv');
-let scale = 1, dpr = 1, SH = H, OY = 0;   // SH：舞台高（長螢幕會加長），OY：關卡往下移的量
+let scale = 1, dpr = 1, SW = W, SH = H, OX = 0, OY = 0;   // SW／SH：舞台寬高（螢幕比例不同就加寬或加長），OX／OY：關卡往右／往下移的量
 
 // ---------- 存檔 ----------
 let save = { stars: {} };
@@ -20,11 +20,14 @@ let screen = 'loading', ready = false;
 function resize() {
   const vw = window.innerWidth, vh = window.innerHeight;
   scale = Math.min(vw / W, vh / (H + V.BAND + PAD));
+  // 螢幕比較矮（Safari 網址列、電腦橫螢幕）：舞台往兩邊加寬，不留黑邊；比較長：往上加長
+  SW = Math.min(Math.round(vw / scale), 3200); OX = (SW - W) / 2;
   SH = Math.min(Math.round(vh / scale), 2000); OY = SH - PAD - V.BAND - H;
   dpr = Math.min(window.devicePixelRatio || 1, 2);
+  stage.style.width = SW + 'px'; cv.style.width = SW + 'px';
   stage.style.height = SH + 'px'; cv.style.height = SH + 'px';
-  stage.style.transform = `translate(${(vw - W * scale) / 2}px, ${Math.max(0, (vh - SH * scale) / 2)}px) scale(${scale})`;
-  if (ready) V.resize(Math.round(W * scale * dpr), Math.round(SH * scale * dpr), SH, OY);
+  stage.style.transform = `translate(${(vw - SW * scale) / 2}px, ${Math.max(0, (vh - SH * scale) / 2)}px) scale(${scale})`;
+  if (ready) V.resize(Math.round(SW * scale * dpr), Math.round(SH * scale * dpr), SW, SH, OY);
 }
 window.addEventListener('resize', resize);
 
@@ -36,7 +39,8 @@ function show(name) {
   $('hud').classList.toggle('hide', name !== 'play');
   cv.classList.toggle('hide', name === 'select' || name === 'loading');
   if (name !== 'play') { $('tip').classList.add('hide'); $('result').classList.add('hide'); }
-  AUD.bgm(name === 'play');
+  AUD.music(name === 'play' ? 'play' : name === 'title' || name === 'select' ? 'title' : null);
+  if (name !== 'play') { AUD.swarm(0); AUD.chalk(0); }
   if (name === 'select') buildGrid();
   if (name === 'title') titleScene();
 }
@@ -113,9 +117,9 @@ function onCollide(pairs) {
 // ---------- 觸控畫線（照 2D 版：按在東西上也能開始、碰到東西貼邊停住） ----------
 function toWorld(e) {
   const r = cv.getBoundingClientRect();
-  return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * SH - OY };
+  return { x: (e.clientX - r.left) / r.width * SW - OX, y: (e.clientY - r.top) / r.height * SH - OY };
 }
-let queued = [];   // pointermove 先收著，rAF 裡再加點（手機上一格只處理一次）
+let queued = [], drawnFrame = 0;   // pointermove 先收著，rAF 裡再加點（手機上一格只處理一次）
 cv.addEventListener('pointerdown', (e) => {
   if (screen !== 'play' || !S || S.state !== 'draw') return;
   e.preventDefault();
@@ -168,8 +172,7 @@ function addPoint(p) {
     d = Math.hypot(p.x - last.x, p.y - last.y);
     if (d < 3) return;
   }
-  pts.push(p); ink -= d;
-  AUD.SFX.draw();
+  pts.push(p); ink -= d; drawnFrame += d;
 }
 
 // ---------- 主迴圈 ----------
@@ -178,6 +181,7 @@ function loop(now) {
   const dt = Math.min(100, now - prev); prev = now;
   if (screen === 'play' && S) {
     if (drawing) flushPoints();
+    AUD.chalk(drawing ? drawnFrame : 0); drawnFrame = 0;   // 粉筆摩擦聲：這一格畫越多越大聲
     if (S.state !== 'draw') {
       acc += dt;
       let n = 0;
@@ -195,16 +199,20 @@ function tick() {
   const before = S.bees.length, st = S.state;
   RL.step(S);
   if (S.bees.length > before) AUD.SFX.bee();
+  // 蜂群嗡嗡：越多越近越大聲
+  let buzz = 0; const hp = S.hero.position;
+  if (S.state === 'play') for (const b of S.bees) buzz += Math.max(0, 1 - Math.hypot(b.position.x - hp.x, b.position.y - hp.y) / 700);
+  AUD.swarm(buzz / 7);
   for (const b of S.bees) { if (b.dash > 0 && !b._d) AUD.SFX.lunge(); b._d = b.dash > 0; }
   if (st === 'play') {
     const left = Math.max(0, Math.ceil(S.time - S.t));
     setTimer(left, 1 - S.t / S.time);
-    if (left !== lastTick && left <= 3 && left > 0) AUD.SFX.tick(false);
+    if (left !== lastTick && left <= 3 && left > 0) AUD.SFX.tick();
     lastTick = left;
   }
   if (S.state !== 'play' && !endAt) {
     endAt = S.t + (S.state === 'win' ? 1.3 : 1.6);
-    if (S.state === 'win') AUD.SFX.win(); else AUD.SFX.lose();
+    if (S.state === 'win') AUD.SFX.win(); else { AUD.SFX.sting(S.hit); AUD.SFX.lose(); }
   }
   if (endAt && S.t >= endAt && !shown) result();
 }
@@ -226,6 +234,7 @@ function result() {
   const d = new Date(); $('rDate').textContent = `${d.getMonth() + 1} 月 ${d.getDate()} 日・第 ${li + 1} 關`;
   const n = win ? RL.stars(S) : 0;
   $('rSeals').innerHTML = [1, 2, 3].map((k) => `<div class="seal ${k <= n ? 'pop' : 'no'}" style="animation-delay:${k * 0.18}s">優</div>`).join('');
+  for (let k = 1; k <= n; k++) setTimeout(() => AUD.SFX.stamp(), k * 180 + 200);   // 蓋章聲跟著章落下
   const pool = win ? WIN_LINES : (LOSE[S.hit] || LOSE.bee);
   $('rLine').textContent = '兔兔老師：' + pool[Math.random() * pool.length | 0];
   const next = $('rNext'), alt = $('rRetry');
@@ -240,10 +249,20 @@ function result() {
   }
 }
 
+// ---------- 全螢幕：Android／電腦按開始就進全螢幕（藏掉網址列）；iPhone Safari 不支援，提示加入主畫面 ----------
+const fsOK = !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
+function goFull() {
+  const d = document, el = d.documentElement;
+  if (!fsOK || d.fullscreenElement || d.webkitFullscreenElement) return;
+  try { (el.requestFullscreen || el.webkitRequestFullscreen).call(el, { navigationUI: 'hide' })?.catch?.(() => {}); } catch (e) {}
+}
+const standalone = navigator.standalone || matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches;
+if (!fsOK && /iPhone|iPad|iPod/.test(navigator.userAgent) && !standalone) $('iosTip').classList.remove('hide');
+
 // ---------- 按鈕 ----------
 const on = (id, fn) => $(id).addEventListener('click', (e) => { e.preventDefault(); AUD.SFX.click(); fn(); });
-on('bStart', () => start(Math.min(unlocked(), LEVELS.length) - 1));
-on('bSelect', () => show('select'));
+on('bStart', () => { goFull(); start(Math.min(unlocked(), LEVELS.length) - 1); });
+on('bSelect', () => { goFull(); show('select'); });
 on('bBack', () => show('title'));
 on('bMenu', () => show('select'));
 on('bRetry', () => start(li));

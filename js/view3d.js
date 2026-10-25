@@ -9,6 +9,7 @@ export const BAND = 170;            // 關卡下面留給兔兔老師站的走�
 const U = 0.01;
 const X = (x) => (x - W / 2) * U, Y = (y) => (H - y) * U;
 const EYE_Y = 260, DIST = 22;       // 眼睛在關卡上半部、距離 22：看得到台子頂面，又不會歪得太誇張
+const EXT = 1400;                   // 貼邊地形往外延伸多少（px）
 const HERO_SCALE = 1.16, TU_SCALE = 1.42;
 const TU_FEET = H + BAND - 8;      // 老師腳踩的高度（px）
 
@@ -158,25 +159,26 @@ function makeChar(key, scale) {
 
 // 畫面大小：SH＝舞台高（px），OY＝關卡往下移多少（長螢幕上面多出來的）
 let viewSH = H, viewOY = 0;
-export function resize(pxW, pxH, SH, OY) {
+export function resize(pxW, pxH, SW, SH, OY) {
   renderer.setPixelRatio(1);
   renderer.setSize(pxW, pxH, false);
   viewSH = SH; viewOY = OY;
   const n = 1, f = 80, ey = Y(EYE_Y);
   const top = Y(-OY), bot = Y(SH - OY);
-  camera.projectionMatrix.makePerspective(-3.6 * n / DIST, 3.6 * n / DIST, (top - ey) * n / DIST, (bot - ey) * n / DIST, n, f);
+  const hw = SW / 2 * U;   // 關卡中心 x=360 永遠在畫面正中間
+  camera.projectionMatrix.makePerspective(-hw * n / DIST, hw * n / DIST, (top - ey) * n / DIST, (bot - ey) * n / DIST, n, f);
   camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
 }
 
 // ---------- 老師走道（關卡下面）：木頭粉筆槽＋地板 ----------
 function buildBand() {
   const g = new THREE.Group();
-  const ledge = outlined(new THREE.Mesh(boxGeo(7.6, 0.16, 0.7, 0.8), texMat(wood('#c08a52', '#6a3c16', 0))));
+  const ledge = outlined(new THREE.Mesh(boxGeo(60, 0.16, 0.7, 0.8), texMat(wood('#c08a52', '#6a3c16', 0))));
   ledge.position.set(0, Y(H + 8), 0.2); ledge.receiveShadow = true; g.add(ledge);
-  const floor = new THREE.Mesh(boxGeo(7.6, 0.6, 3, 1), texMat(wood('#8f603a', '#3e220c', 40)));
+  const floor = new THREE.Mesh(boxGeo(60, 0.6, 3, 1), texMat(wood('#8f603a', '#3e220c', 40)));
   floor.position.set(0, Y(TU_FEET) - 0.3, 0.4); floor.receiveShadow = true; g.add(floor);
   // 地板和粉筆槽之間：深綠色牆裙
-  const wain = new THREE.Mesh(new THREE.PlaneGeometry(7.6, (TU_FEET - H) * U), toon({ color: 0x31483a }));
+  const wain = new THREE.Mesh(new THREE.PlaneGeometry(60, (TU_FEET - H) * U), toon({ color: 0x31483a }));
   wain.position.set(0, Y((H + TU_FEET) / 2), -1.0); g.add(wain);
   scene.add(g);
 }
@@ -193,8 +195,10 @@ export function buildLevel(state, level) {
     const d = b.def, ground = d.y + d.h / 2 >= H - 5;
     const depth = ground ? 1.2 : 1.0;
     const side = texMat(ground ? T.gSide : T.side), top = texMat(ground ? T.gTop : T.top);
-    const m = outlined(new THREE.Mesh(boxGeo(d.w * U, d.h * U, depth), [side, side, top, side, side, side]));
-    m.position.set(X(d.x), Y(d.y), 0); m.rotation.z = -(d.a || 0) * Math.PI / 180;
+    // 貼著畫面左右邊的地形，畫的時候往外延伸（寬螢幕兩邊看起來才接得上；物理不變）
+    const [l, r] = d.a ? [0, 0] : [d.x - d.w / 2 <= 1 ? EXT : 0, d.x + d.w / 2 >= W - 1 ? EXT : 0];
+    const m = outlined(new THREE.Mesh(boxGeo((d.w + l + r) * U, d.h * U, depth), [side, side, top, side, side, side]));
+    m.position.set(X(d.x + (r - l) / 2), Y(d.y), 0); m.rotation.z = -(d.a || 0) * Math.PI / 180;
     m.receiveShadow = true; m.castShadow = !ground;
     levelG.add(m);
   }
@@ -219,8 +223,8 @@ function disposeTree(g) {
 
 // 生態池：半透明水體＋會動的水面＋幾片睡蓮葉
 const water = [];
-function makePond(d) {
-  const g = new THREE.Group();
+function makePond(d0) {
+  const g = new THREE.Group(), d = { ...d0, w: d0.w + EXT * 2 };   // 池子也往兩邊延伸
   const body = new THREE.Mesh(new THREE.BoxGeometry(d.w * U, d.h * U, 1.6), new THREE.MeshBasicMaterial({ color: 0x3b8aa0, transparent: true, opacity: 0.62, depthWrite: false }));
   body.position.set(X(d.x), Y(d.y), 0); g.add(body);
   const surf = new THREE.Mesh(new THREE.PlaneGeometry(d.w * U, 1.6, 48, 1), new THREE.MeshBasicMaterial({ color: 0x9fd3d8, transparent: true, opacity: 0.85, side: THREE.DoubleSide }));
