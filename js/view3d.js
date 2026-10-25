@@ -366,6 +366,17 @@ export function puff(x, y, n = 4) {
   }
 }
 
+// 大力蜂衝撞：鏡頭震一下、噴一大團粉筆灰、跳出「碰！」
+let shake = 0;
+const pops = [];
+export function smash(x, y, power = 1) {
+  shake = Math.min(0.22, shake + 0.12 * power);
+  puff(x, y, 14);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: emoteTex(Math.random() < 0.5 ? '碰！' : '轟！', '#ffd65a'), transparent: true, depthTest: false }));
+  sp.renderOrder = 21; sp.position.set(X(x), Y(y) + 0.5, 0.5); scene.add(sp);
+  pops.push({ sp, t0: performance.now() / 1000 });
+}
+
 // ---------- 粉筆線：3D 管子 ----------
 const chalkTex = canvasTex(256, 32, (g, w, h) => {
   g.fillStyle = '#fbf8ef'; g.fillRect(0, 0, w, h);
@@ -443,10 +454,11 @@ function makeBigBee() {
   u.arms = [];
   for (const z of [0.12, -0.12]) {   // 粗手臂＋拳頭
     const arm = new THREE.Group(); arm.position.set(0.04, -0.03, z);
-    const up = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.035, 0.13, 8), armMat); up.rotation.z = Math.PI / 2; up.position.x = 0.065;
-    const fist = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 8), armMat); fist.position.x = 0.14;
-    const ofist = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 8), outlineMat); ofist.scale.setScalar(1.2); fist.add(ofist);
-    arm.add(up, fist); u.body.add(arm); u.arms.push(arm);
+    const up = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.045, 0.14, 8), armMat); up.rotation.z = Math.PI / 2; up.position.x = 0.07;
+    const bicep = new THREE.Mesh(new THREE.SphereGeometry(0.055, 10, 8), armMat); bicep.position.set(0.05, 0.03, 0); bicep.scale.set(1.2, 0.9, 0.9);   // 二頭肌
+    const fist = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 8), armMat); fist.position.x = 0.155;
+    for (const q of [bicep, fist]) { const o = new THREE.Mesh(q.geometry, outlineMat); o.scale.setScalar(1.18); q.add(o); }
+    arm.add(up, bicep, fist); u.body.add(arm); u.arms.push(arm);
   }
   u.big = true;
   return g;
@@ -564,6 +576,14 @@ function frame(ui, t, dt) {
   sparks.geometry.attributes.position.needsUpdate = true;
   updateHero(t, dt);
   updateTeacher(ui, tip, t, dt);
+  // 震動慢慢停；「碰！」放大、往上飄、淡出
+  shake *= Math.pow(0.002, dt);
+  camera.position.x = (Math.random() - 0.5) * shake; camera.position.y = Y(EYE_Y) + (Math.random() - 0.5) * shake;
+  for (let i = pops.length - 1; i >= 0; i--) {
+    const p = pops[i], a = t - p.t0, k = Math.min(1, a * 8);
+    p.sp.scale.set(1.6 * k * (1 + a * 0.4), 0.8 * k * (1 + a * 0.4), 1); p.sp.position.y += dt * 0.6; p.sp.material.opacity = Math.max(0, 1 - Math.max(0, a - 0.35) * 3);
+    if (a > 0.7) { scene.remove(p.sp); p.sp.material.dispose(); pops.splice(i, 1); }
+  }
 }
 
 function updateHero(t, dt) {

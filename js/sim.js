@@ -6,7 +6,7 @@
   const HERO_R = 50;            // 小編的碰撞是一顆圓（不翻滾，3D 模型站在圓裡）
   const BEE_R = 15;
   // 大力蜂（下學期）：比較大隻、很重，撞到線不會彈開，會一直推、退一下再衝撞，能把線推倒
-  const STRONG = root.STRONG || { r: 28, density: 0.02, speed: 0.75, push: 0.7, pushK: 2, back: 0.3, lift: 0.4 };
+  const STRONG = Object.assign({ r: 40, density: 0.05, speed: 1.1, push: 0.8, pushK: 3, back: 0.3, lift: 0.6, smash: 1, smashUp: 1.2, maxV: 9, maxW: 0.06 }, root.STRONG);
   const MOUTH = { down: [0, 1], up: [0, -1], left: [-1, 0], right: [1, 0] };
 
   function rng(seed) {
@@ -67,12 +67,29 @@
         for (const [x, y] of [[a, b], [b, a]]) {
           if (x.label === 'bee' && y.label !== 'bee' && y.label !== 'hero') {
             if (!x.big) x.back = 0.16 + S.rand() * 0.18;
-            else if (!(x.push > 0) && !(x.back > 0)) { x.push = STRONG.push * (0.8 + S.rand() * 0.4); x.dash = 0; x.wind = 0; }
+            else {
+              // 衝撞：撞到粉筆線那一下直接把線撞飛（線越重飛越近；勾住或頂住的線靠支撐擋下來）
+              if (y.label === 'line' && (x.smashCool || 0) <= 0) {
+                const v = Math.hypot(x.velocity.x, x.velocity.y), J = x.mass * Math.max(v, 3) * STRONG.smash;
+                const sx = S.hero.position.x > x.position.x ? 1 : -1;
+                // 直接改線的速度（碰撞事件後 Matter 會清掉 force，applyForce 沒用）；撞在哪裡就順便轉一下
+                const jx = sx * J, jy = -J * STRONG.smashUp, rx = x.position.x - y.position.x, ry = x.position.y - y.position.y;
+                // 一次最多加 STRONG.maxV（px／格）、STRONG.maxW（弧度／格）：再快線會一格跳過蜜蜂（穿隧），蜜蜂就跑進線裡面了
+                let ux = jx / y.mass, uy = jy / y.mass; const um = Math.hypot(ux, uy), cap = Math.min(1, STRONG.maxV / (um || 1));
+                ux *= cap; uy *= cap;
+                const dw = Math.max(-STRONG.maxW, Math.min(STRONG.maxW, (rx * jy - ry * jx) / y.inertia));
+                M.Body.setVelocity(y, { x: y.velocity.x + ux, y: y.velocity.y + uy });
+                M.Body.setAngularVelocity(y, y.angularVelocity + dw);
+                x.smashCool = 0.5;
+                S.smashes = (S.smashes || 0) + 1; S.lastSmash = { x: x.position.x, y: x.position.y, p: J };
+              }
+              if (!(x.push > 0) && !(x.back > 0)) { x.push = STRONG.push * (0.8 + S.rand() * 0.4); x.dash = 0; x.wind = 0; }
+            }
           }
         }
         const o = a === S.hero ? b : b === S.hero ? a : null;
         if (!o || S.state !== 'play') continue;
-        if (o.label === 'bee') S.hit = S.hit || 'bee';
+        if (o.label === 'bee') { S.hit = S.hit || 'bee'; S.hitBy = S.hitBy || o; }
         if (o.label === 'hazard') S.hit = S.hit || o.def.kind;
       }
       if (S.onCollide) S.onCollide(e.pairs);
@@ -215,6 +232,8 @@
     const m = hive.mouth, d = hive.dirv;
     const b = M.Bodies.circle(m.x + (r() - 0.5) * 20, m.y + (r() - 0.5) * 20, big ? STRONG.r : BEE_R, {
       frictionAir: 0.02, friction: big ? 0.3 : 0, restitution: big ? 0 : 0.2, density: big ? STRONG.density : 0.0005, label: 'bee', slop: 1,
+      // 大力蜂跟小蜜蜂互相穿過：不然大力蜂會把小蜜蜂硬擠穿粉筆線
+      collisionFilter: big ? { category: 0x4, mask: 0xffff & ~0x2 } : { category: 0x2, mask: 0xffff & ~0x4 },
     });
     const sp = S.level.speed || 5;
     b.big = !!big; b.push = 0;
@@ -269,6 +288,7 @@
       let dx, dy, sp = b.spd, kk = k;
       const st = DT / 1000;
       b.cool -= st;
+      if (b.big) b.smashCool = (b.smashCool || 0) - st;
       if (S.state === 'win') { dx = -tx * 0.4; dy = -1; sp *= 1.4; }
       else if (b.push > 0) {
         // 大力蜂：貼著東西用力推，推完退一下再衝撞

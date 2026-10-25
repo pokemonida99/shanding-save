@@ -251,6 +251,13 @@
         if (i === 3) { const l = ac.createOscillator(), lg = ac.createGain(); l.frequency.value = 6; lg.gain.value = 5; l.connect(lg); lg.connect(o.frequency); l.start(tt); l.stop(tt + dur); }
       });
     },
+    smash() {   // 大力蜂衝撞：低音大鼓＋爆裂噪音＋往下掉的轟聲
+      if (!ac || !limit('smash', 150)) return; const t = ac.currentTime;
+      kick(t, 0.5, sfxBus); kick(t + 0.03, 0.3, sfxBus);
+      const f = noise(t, 0.35, sfxBus, { type: 'lowpass', f: 2400, vol: 0.35, a: 0.002 }); f.frequency.exponentialRampToValueAtTime(200, t + 0.35);
+      const g = ac.createGain(); g.connect(sfxBus); env(g, t, 0.005, 0.5, 0.18);
+      const o = osc('sawtooth', 120, t, 0.55, g); o.frequency.exponentialRampToValueAtTime(40, t + 0.5);
+    },
     stamp() { if (!ac) return; const t = ac.currentTime; kick(t, 0.26, sfxBus); noise(t, 0.06, sfxBus, { type: 'lowpass', f: 700, vol: 0.2 }); },   // 蓋章
     click() { if (!ac) return; wood(ac.currentTime, 1250, 0.13, sfxBus); },
   };

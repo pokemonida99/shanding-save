@@ -129,25 +129,48 @@
   LEVELS.forEach((L) => { L.term = 1; });
 
   // ---------- 下學期：大力蜂來了（strong＝這關有幾隻大力蜂，平均混在蜂群裡） ----------
-  // 大力蜂會把線橫著推走，空曠地上單獨一個拱罩不住；線要靠著柱子、牆，或勾住台子、卡進坑裡
-  const post = (x, h = 130, w = 40) => ({ x, y: 1160 - h / 2, w, h });
-  const again = (i, over) => ({ ...LEVELS[i], tip: undefined, ...over, term: 2 });
+  // 大力蜂大力到不像蜜蜂：會把線撞飛，靠柱子、勾台子都擋不住；要把線繞台子一圈「扣住」才撞不走
+  // 解答＝繞台子＋小編一圈的圓角框（tools/verify.js 實跑）；底部中間留一點點縫，不用畫到接死
+  function wrap(x0, y0, x1, y1, r = 55, gap = 14, step = 14) {
+    const P = [[Math.round((x0 + x1) / 2 + gap / 2), y1]], cx = (x0 + x1) / 2;
+    const arc = (ax, ay, a0, a1) => { const n = Math.max(3, Math.round(Math.abs(a1 - a0) * r / step)); for (let i = 1; i <= n; i++) { const a = a0 + (a1 - a0) * i / n; P.push([Math.round(ax + r * Math.cos(a)), Math.round(ay + r * Math.sin(a))]); } };
+    const to = (bx, by) => { const [ax, ay] = P[P.length - 1]; const n = Math.max(1, Math.round(Math.hypot(bx - ax, by - ay) / step)); for (let i = 1; i <= n; i++) P.push([Math.round(ax + (bx - ax) * i / n), Math.round(ay + (by - ay) * i / n)]); };
+    to(x0 + r, y1); arc(x0 + r, y1 - r, Math.PI / 2, Math.PI);
+    to(x0, y0 + r); arc(x0 + r, y0 + r, Math.PI, Math.PI * 1.5);
+    to(x1 - r, y0); arc(x1 - r, y0 + r, Math.PI * 1.5, Math.PI * 2);
+    to(x1, y1 - r); arc(x1 - r, y1 - r, 0, Math.PI / 2);
+    to(cx - gap / 2, y1);
+    return P;
+  }
+  const P = (w, y) => ({ x: 360, y, w, h: 36 });
+  // 小編站在台子上；線＝台子外面留 24、頭上留 145 的框；墨水、蓋章門檻照解答的長度給
+  function T2(d) {
+    const pl = d.solids.find((q) => q.h === 36), hy = pl.y - 18;
+    const sol = wrap(pl.x - pl.w / 2 - 24, hy - 145, pl.x + pl.w / 2 + 24, pl.y + 18 + 24);
+    let len = 0; for (let i = 1; i < sol.length; i++) len += Math.hypot(sol[i][0] - sol[i - 1][0], sol[i][1] - sol[i - 1][1]);
+    return { ink: Math.round(len * 1.6 / 50) * 50, star3: Math.round(len * 1.08), star2: Math.round(len * 1.3), ...d, hero: { x: 360, y: hy }, sol };
+  }
   const TERM2 = [
-    { name: '大力蜂來了', bg: 'class', tip: '大力蜂很壯，會把線推走！讓線靠著兩邊的柱子',
-      ink: 1000, bees: 10, speed: 4.4, strong: 1,
-      solids: [GROUND, post(212), post(508)], hives: [{ x: 150, y: 330 }], hero: { x: 360, y: 1160 },
-      sol: ell(360, 1150, 114, 205) },
-    again(2, { name: '靠牆別動', strong: 2, tip: '線頂住牆和小積木，大力蜂就推不動' }),
-    { name: '兩根柱子', bg: 'class', ink: 1000, bees: 14, speed: 5, strong: 2,
-      solids: [GROUND, post(212, 150), post(508, 150)], hives: [{ x: 120, y: 330 }, { x: 600, y: 330 }], hero: { x: 360, y: 1160 },
-      sol: ell(360, 1150, 114, 205) },
-    again(4, { name: '沙坑防守', strong: 2, tip: '線卡在坑口兩邊，推也推不走' }),
-    again(5, { name: '升旗台', strong: 2 }),
-    again(7, { name: '溜滑梯下', strong: 3 }),
-    again(10, { name: '小板凳', strong: 3, tip: '把線勾到台子底下，大力蜂就推不掉' }),
-    again(11, { name: '置物架', strong: 3 }),
-    again(13, { name: '圖釘海', strong: 3 }),
-    again(14, { name: '蜂王的保鑣', strong: 5 }),
+    T2({ name: '大力蜂來了', bg: 'yard', tip: '大力蜂大力到不像蜜蜂，會把線撞飛！把線繞台子一圈扣住', bees: 10, speed: 4.6, strong: 1,
+      solids: [P(240, 840)], hazards: [POND(1140)], hives: [{ x: 140, y: 300 }] }),
+    T2({ name: '繞一圈', bg: 'yard', tip: '從台子底下開始，繞過小編頭上再繞回來', bees: 12, speed: 4.8, strong: 2,
+      solids: [P(200, 820)], hazards: [POND(1140)], hives: [{ x: 130, y: 300 }, { x: 590, y: 300 }] }),
+    T2({ name: '下面也來', bg: 'dusk', bees: 14, speed: 5, strong: 2,
+      solids: [P(260, 760), { x: 110, y: 1240, w: 220, h: 80 }, { x: 610, y: 1240, w: 220, h: 80 }], hives: [{ x: 110, y: 1120, dir: 'up' }, { x: 610, y: 1120, dir: 'up' }] }),
+    T2({ name: '圖釘海', bg: 'class', bees: 14, speed: 5.2, strong: 2,
+      solids: [P(230, 960), { x: 360, y: 1240, w: 720, h: 80 }], hazards: [{ kind: 'tack', x: 360, y: 1170, w: 720, h: 60 }], hives: [{ x: 130, y: 360 }, { x: 600, y: 360 }] }),
+    T2({ name: '窄窄板凳', bg: 'yard', bees: 14, speed: 5.2, strong: 2,
+      solids: [P(150, 820)], hazards: [POND(1140)], hives: [{ x: 120, y: 520, dir: 'right' }, { x: 600, y: 300 }] }),
+    T2({ name: '高高在上', bg: 'dusk', bees: 15, speed: 5.2, strong: 3,
+      solids: [P(220, 640), { x: 110, y: 1240, w: 220, h: 80 }, { x: 610, y: 1240, w: 220, h: 80 }], hazards: [POND(1180)], hives: [{ x: 600, y: 280 }, { x: 110, y: 1120, dir: 'up' }] }),
+    T2({ name: '小板凳', bg: 'yard', bees: 15, speed: 5.4, strong: 3,
+      solids: [P(170, 840)], hazards: [POND(1140)], hives: [{ x: 130, y: 300 }, { x: 590, y: 300 }] }),
+    T2({ name: '生態池', bg: 'yard', bees: 15, speed: 5.4, strong: 3,
+      solids: [P(320, 900)], hazards: [POND(1120)], hives: [{ x: 590, y: 300 }] }),
+    T2({ name: '蜂擁而至', bg: 'dusk', bees: 18, speed: 5.4, strong: 3, gap: 0.12,
+      solids: [P(220, 880)], hazards: [POND(1140)], hives: [{ x: 110, y: 340 }, { x: 360, y: 260 }, { x: 610, y: 340 }] }),
+    T2({ name: '蜂王的保鑣', bg: 'dusk', bees: 22, speed: 6, strong: 5, gap: 0.1, time: 12,
+      solids: [GROUND, P(200, 960)], hives: [{ x: 110, y: 330 }, { x: 610, y: 330 }, { x: 110, y: 1090, dir: 'right' }] }),
   ];
   TERM2.forEach((L) => { L.term = 2; });
   LEVELS.push(...TERM2);

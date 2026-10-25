@@ -1,5 +1,5 @@
 // 流程、觸控畫線、介面；3D 畫面在 view3d.js，物理在 sim.js
-import * as V from './view3d.js?v=4';
+import * as V from './view3d.js?v=5';
 
 const { SIM: RL, LEVELS, AUD } = window;
 const W = 720, H = 1280, PAD = 24;     // PAD：底部留給 iPhone 的橫條
@@ -80,14 +80,14 @@ function buildGrid() {
   });
   $('selTotal').textContent = `優 ${total} / ${ids.length * 3}`;
   $('selFoot').textContent = selTerm === 2
-    ? '下學期來了大力蜂：又大又壯，撞到線不會彈開，會一直推、退一下再衝撞，能把線推倒。讓線靠著柱子、牆，或勾住台子、卡進坑裡才擋得住。'
+    ? '下學期來了大力蜂：大力到不像蜜蜂，一撞就把線撞飛，靠著柱子、勾住台子都沒用。要把線繞台子一圈「扣住」，才撞不走。'
     : '畫一條粉筆線護住小編，撐過倒數就下課。粉筆用得越少，老師蓋的「優」越多。';
 }
 document.querySelectorAll('#terms button').forEach((b) => b.addEventListener('click', () => {
   AUD.SFX.click(); selTerm = +b.dataset.t; try { localStorage.setItem('shanding-save-term', selTerm); } catch (e) {} buildGrid();
 }));
 
-let SEAL_AT = [0, 0, 0];
+let SEAL_AT = [0, 0, 0], smashSeen = 0;
 function start(i, seed) {
   li = i;
   const L = LEVELS[i];
@@ -95,6 +95,7 @@ function start(i, seed) {
   S.onCollide = onCollide;
   V.buildLevel(S, L);
   setBg(L.bg || 'class');
+  smashSeen = 0;
   pts = []; drawing = false; ink = L.ink; hint = false; shown = false; endAt = 0; lastTick = -1;
   $('lvNum').textContent = `${termOf(i) === 2 ? '下學期 ' : ''}第 ${numIn(i)} 關`;
   $('lvName').textContent = L.name;
@@ -216,6 +217,7 @@ function tick() {
   const before = S.bees.length, st = S.state;
   RL.step(S);
   if (S.bees.length > before) AUD.SFX.bee(S.bees[S.bees.length - 1].big);
+  if ((S.smashes || 0) > smashSeen) { smashSeen = S.smashes; V.smash(S.lastSmash.x, S.lastSmash.y); AUD.SFX.smash(); }   // 大力蜂把線撞飛
   // 蜂群嗡嗡：越多越近越大聲
   let buzz = 0; const hp = S.hero.position;
   if (S.state === 'play') for (const b of S.bees) buzz += Math.max(0, 1 - Math.hypot(b.position.x - hp.x, b.position.y - hp.y) / 700) * (b.big ? 2.5 : 1);
