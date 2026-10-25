@@ -120,7 +120,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
   text-shadow: 0 0 1px rgba(255, 255, 255, .7), 0 2px 6px rgba(0, 0, 0, .7); }
 #title .iosTip { position: absolute; left: 60px; right: 60px; top: 160px; padding: 10px 16px; font-size: 24px; line-height: 1.45; text-align: center; color: var(--pencil);
   background: #f3d86e; transform: rotate(-1deg); box-shadow: 2px 4px 4px rgba(0, 0, 0, .35); }
-.t-btns { position: absolute; left: 0; right: 0; top: calc(var(--logoTop, 430px) + 320px); display: flex; flex-direction: column; align-items: center; gap: 22px; }
+.t-btns { position: absolute; left: 0; right: 0; top: calc(var(--logoTop, 430px) + 320px); display: flex; flex-direction: column; align-items: center; gap: 16px; }
 
 /* ---------- 選關：整面黑板 ---------- */
 #select { padding: 36px 30px; background: var(--board); border: 24px solid transparent; border-image: url(art/ui-board.webp) 28 fill / 24px stretch; }
@@ -150,3 +150,12 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .ld i { display: block; height: 22px; margin: 30px 0 18px; background: var(--wood); border-bottom: 5px solid var(--wood-d); padding: 4px; }
 .ld em { display: block; height: 100%; width: 0; background: var(--chalk); border-radius: 3px 6px 6px 3px; transition: width .2s; }
 .ld span { font-size: 28px; color: var(--chalk); opacity: .85; line-height: 1.5; }
+
+/* ---------- 下學期：大力蜂 ---------- */
+.btn.bigbee { height: 88px; font-size: 32px; letter-spacing: .08em; color: var(--chalk-y); text-shadow: 0 0 1px rgba(255, 240, 180, .8); }
+.btn.bigbee::after { content: ""; position: absolute; left: 18%; right: 18%; bottom: 6px; height: 3px; background: #ff8a5a; transform: rotate(-1deg); opacity: .8; }   /* 粉筆畫的底線 */
+#terms { display: flex; gap: 14px; margin-top: 26px; }
+#terms button { flex: 1; height: 64px; font-size: 28px; font-weight: 700; color: var(--chalk); border: 3px dashed rgba(244, 240, 227, .45); }
+#terms button.on { color: var(--pencil); border: 0; background: url(art/ui-paper.webp) left top / 220px auto; box-shadow: 2px 4px 4px rgba(0, 0, 0, .35); }
+#grid { margin-top: 24px; }
+.cell.big::before { background: #f0a020; }

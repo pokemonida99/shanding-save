@@ -424,6 +424,33 @@ function makeBee() {
   g.userData = { body, w1, w2, face: 1 };
   return g;
 }
+// 大力蜂：大一倍、橘一點、有兩隻握拳的粗手臂、生氣的眉毛和紅色運動頭帶；推的時候手往前伸
+const bigStripe = canvasTex(64, 128, (g, w, h) => {
+  g.fillStyle = '#f0a020'; g.fillRect(0, 0, w, h);
+  g.fillStyle = '#24170c'; for (const y of [24, 52, 80]) g.fillRect(0, y, w, 18);
+}, false);
+const bigMat = toon({ map: bigStripe }), armMat = toon({ color: 0x2a1c10 }), bandMat = toon({ color: 0xd8322b });
+function makeBigBee() {
+  const g = makeBee(), u = g.userData, k = SIM.STRONG.r / SIM.BEE_R;
+  u.body.children[0].material = bigMat;
+  u.body.scale.setScalar(1); g.scale.setScalar(k); u.k = k;
+  const band = new THREE.Mesh(new THREE.TorusGeometry(0.095, 0.022, 6, 16), bandMat);   // 頭帶（繞在前半段）
+  band.rotation.y = Math.PI / 2; band.position.x = 0.12; band.scale.set(1, 1.05, 1); u.body.add(band);
+  for (const z of [0.07, -0.07]) {   // 生氣的眉毛
+    const brow = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.014, 0.014), eyeMat);
+    brow.position.set(0.155, 0.085, z); brow.rotation.y = z > 0 ? -0.3 : 0.3; brow.rotation.z = -0.5; u.body.add(brow);
+  }
+  u.arms = [];
+  for (const z of [0.12, -0.12]) {   // 粗手臂＋拳頭
+    const arm = new THREE.Group(); arm.position.set(0.04, -0.03, z);
+    const up = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.035, 0.13, 8), armMat); up.rotation.z = Math.PI / 2; up.position.x = 0.065;
+    const fist = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 8), armMat); fist.position.x = 0.14;
+    const ofist = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 8), outlineMat); ofist.scale.setScalar(1.2); fist.add(ofist);
+    arm.add(up, fist); u.body.add(arm); u.arms.push(arm);
+  }
+  u.big = true;
+  return g;
+}
 
 // ---------- 角色動作（共用動作套在同一套骨架上，跟籃球遊戲一樣） ----------
 const MOVE_WIN = { stumble: [0.2, 1.4], reach: [1.55, 2.2] };
@@ -508,7 +535,7 @@ function frame(ui, t, dt) {
   const tip = ui.drawing && ui.pts && ui.pts.length ? ui.pts[ui.pts.length - 1] : null;
   pen.visible = !!tip; if (tip) pen.position.set(X(tip.x), Y(tip.y), 0.1);
   // 蜜蜂
-  while (beeMeshes.length < S.bees.length) { const m = makeBee(); beeMeshes.push(m); dynG.add(m); }
+  while (beeMeshes.length < S.bees.length) { const m = S.bees[beeMeshes.length].big ? makeBigBee() : makeBee(); beeMeshes.push(m); dynG.add(m); }
   S.bees.forEach((b, i) => {
     const m = beeMeshes[i], u = m.userData;
     m.position.set(X(b.position.x), Y(b.position.y), 0);
@@ -520,6 +547,12 @@ function frame(ui, t, dt) {
     u.w1.rotation.x = -0.4 - flap; u.w2.rotation.x = 0.4 + flap;
     const s = b.dash > 0 ? 1.15 : b.wind > 0 ? 0.88 : 1;
     u.body.scale.set(s * (b.dash > 0 ? 1.15 : 1), 1 / Math.sqrt(s), 1);
+    if (u.big) {   // 推的時候：身體前傾、雙拳往前頂、抖一抖（用力）；平常手臂上下晃
+      const pushing = b.push > 0;
+      u.body.rotation.z += pushing ? -0.35 : 0;
+      if (pushing) m.position.x += Math.sin(t * 50) * 0.01;
+      u.arms.forEach((a, j) => { a.rotation.y = 0; a.rotation.z = pushing ? 0.15 : -0.9 + Math.sin(t * 8 + j * 3) * 0.3; a.position.x = pushing ? 0.12 : 0.04; });
+    }
   });
   // 粉筆灰
   for (let i = 0; i < 90; i++) {

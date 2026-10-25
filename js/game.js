@@ -1,5 +1,5 @@
 // 流程、觸控畫線、介面；3D 畫面在 view3d.js，物理在 sim.js
-import * as V from './view3d.js?v=3';
+import * as V from './view3d.js?v=4';
 
 const { SIM: RL, LEVELS, AUD } = window;
 const W = 720, H = 1280, PAD = 24;     // PAD：底部留給 iPhone 的橫條
@@ -11,7 +11,17 @@ let scale = 1, dpr = 1, SW = W, SH = H, OX = 0, OY = 0;   // SW／SH：舞台寬
 let save = { stars: {} };
 try { save = JSON.parse(localStorage.getItem('shanding-save') || '') || save; } catch (e) {}
 const persist = () => { try { localStorage.setItem('shanding-save', JSON.stringify(save)); } catch (e) {} };
-const unlocked = () => { let n = 0; while (save.stars[n + 1]) n++; return Math.min(LEVELS.length, n + 1); };
+// 上學期（term 1）、下學期大力蜂（term 2）各自從第一關開始解鎖
+const termOf = (i) => LEVELS[i].term || 1;
+const termIdx = (t) => LEVELS.map((L, i) => i).filter((i) => termOf(i) === t);
+const numIn = (i) => termIdx(termOf(i)).indexOf(i) + 1;   // 這學期的第幾關
+function unlocked(t) {   // 這學期最遠可以玩到哪一關（LEVELS 的 index）
+  const ids = termIdx(t); let k = 0;
+  while (k < ids.length - 1 && save.stars[ids[k] + 1]) k++;
+  return ids[k];
+}
+let selTerm = 1;
+try { selTerm = +localStorage.getItem('shanding-save-term') === 2 ? 2 : 1; } catch (e) {}
 
 // ---------- 狀態 ----------
 let S = null, li = 0, pts = [], drawing = false, ink = 0, hint = false, endAt = 0, shown = false, lastTick = -1;
@@ -56,19 +66,26 @@ function titleScene() {
 
 function buildGrid() {
   const g = $('grid'); g.innerHTML = '';
-  const un = unlocked();
+  const un = unlocked(selTerm), ids = termIdx(selTerm);
   let total = 0;
-  LEVELS.forEach((L, i) => {
-    const n = save.stars[i + 1] || 0; total += n;
+  document.querySelectorAll('#terms button').forEach((b) => b.classList.toggle('on', +b.dataset.t === selTerm));
+  ids.forEach((i, k) => {
+    const L = LEVELS[i], n = save.stars[i + 1] || 0; total += n;
     const b = document.createElement('button');
-    b.className = 'cell' + (i + 1 > un ? ' lock' : '');
+    b.className = 'cell' + (i > un ? ' lock' : '') + (selTerm === 2 ? ' big' : '');
     b.style.setProperty('--r', `${((i * 37) % 7 - 3) * 0.5}deg`);
-    b.innerHTML = `<b>${i + 1}</b><span>${L.name}</span><div class="mini">${[1, 2, 3].map((k) => `<i class="${k <= n ? '' : 'no'}">優</i>`).join('')}</div>`;
-    if (i + 1 <= un) b.onclick = () => { AUD.SFX.click(); start(i); };
+    b.innerHTML = `<b>${k + 1}</b><span>${L.name}</span><div class="mini">${[1, 2, 3].map((m) => `<i class="${m <= n ? '' : 'no'}">優</i>`).join('')}</div>`;
+    if (i <= un) b.onclick = () => { AUD.SFX.click(); start(i); };
     g.appendChild(b);
   });
-  $('selTotal').textContent = `優 ${total} / ${LEVELS.length * 3}`;
+  $('selTotal').textContent = `優 ${total} / ${ids.length * 3}`;
+  $('selFoot').textContent = selTerm === 2
+    ? '下學期來了大力蜂：又大又壯，撞到線不會彈開，會一直推、退一下再衝撞，能把線推倒。讓線靠著柱子、牆，或勾住台子、卡進坑裡才擋得住。'
+    : '畫一條粉筆線護住小編，撐過倒數就下課。粉筆用得越少，老師蓋的「優」越多。';
 }
+document.querySelectorAll('#terms button').forEach((b) => b.addEventListener('click', () => {
+  AUD.SFX.click(); selTerm = +b.dataset.t; try { localStorage.setItem('shanding-save-term', selTerm); } catch (e) {} buildGrid();
+}));
 
 let SEAL_AT = [0, 0, 0];
 function start(i, seed) {
@@ -79,7 +96,7 @@ function start(i, seed) {
   V.buildLevel(S, L);
   setBg(L.bg || 'class');
   pts = []; drawing = false; ink = L.ink; hint = false; shown = false; endAt = 0; lastTick = -1;
-  $('lvNum').textContent = `第 ${i + 1} 關`;
+  $('lvNum').textContent = `${termOf(i) === 2 ? '下學期 ' : ''}第 ${numIn(i)} 關`;
   $('lvName').textContent = L.name;
   $('tipText').textContent = L.tip || '畫一條粉筆線護住小編';
   $('tip').classList.remove('hide');
@@ -110,7 +127,7 @@ function onCollide(pairs) {
   for (const p of pairs) {
     const a = p.bodyA.parent, b = p.bodyB.parent;
     const bee = a.label === 'bee' ? a : b.label === 'bee' ? b : null, o = bee === a ? b : a;
-    if (bee && o.label === 'line') { AUD.SFX.thud(); V.puff(bee.position.x, bee.position.y, 3); }
+    if (bee && o.label === 'line') { AUD.SFX.thud(bee.big); V.puff(bee.position.x, bee.position.y, bee.big ? 8 : 3); }
   }
 }
 
@@ -198,10 +215,10 @@ function loop(now) {
 function tick() {
   const before = S.bees.length, st = S.state;
   RL.step(S);
-  if (S.bees.length > before) AUD.SFX.bee();
+  if (S.bees.length > before) AUD.SFX.bee(S.bees[S.bees.length - 1].big);
   // 蜂群嗡嗡：越多越近越大聲
   let buzz = 0; const hp = S.hero.position;
-  if (S.state === 'play') for (const b of S.bees) buzz += Math.max(0, 1 - Math.hypot(b.position.x - hp.x, b.position.y - hp.y) / 700);
+  if (S.state === 'play') for (const b of S.bees) buzz += Math.max(0, 1 - Math.hypot(b.position.x - hp.x, b.position.y - hp.y) / 700) * (b.big ? 2.5 : 1);
   AUD.swarm(buzz / 7);
   for (const b of S.bees) { if (b.dash > 0 && !b._d) AUD.SFX.lunge(); b._d = b.dash > 0; }
   if (st === 'play') {
@@ -241,8 +258,9 @@ function result() {
   alt.textContent = win ? '重來' : '選關';
   if (win) {
     save.stars[li + 1] = Math.max(save.stars[li + 1] || 0, n); persist();
-    next.textContent = li + 1 < LEVELS.length ? '下一關' : '回課表';
-    next.onclick = () => { AUD.SFX.click(); li + 1 < LEVELS.length ? start(li + 1) : show('select'); };
+    const more = li + 1 < LEVELS.length && termOf(li + 1) === termOf(li);   // 同一學期還有下一關
+    next.textContent = more ? '下一關' : '回課表';
+    next.onclick = () => { AUD.SFX.click(); if (more) start(li + 1); else { selTerm = termOf(li); show('select'); } };
   } else {
     next.textContent = '再試一次';
     next.onclick = () => { AUD.SFX.click(); start(li); };
@@ -261,7 +279,8 @@ if (!fsOK && /iPhone|iPad|iPod/.test(navigator.userAgent) && !standalone) $('ios
 
 // ---------- 按鈕 ----------
 const on = (id, fn) => $(id).addEventListener('click', (e) => { e.preventDefault(); AUD.SFX.click(); fn(); });
-on('bStart', () => { goFull(); start(Math.min(unlocked(), LEVELS.length) - 1); });
+on('bStart', () => { goFull(); start(unlocked(1)); });
+on('bBig', () => { goFull(); start(unlocked(2)); });
 on('bSelect', () => { goFull(); show('select'); });
 on('bBack', () => show('title'));
 on('bMenu', () => show('select'));

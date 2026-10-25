@@ -5,6 +5,8 @@
   const T = 14;                 // 粉筆線粗細
   const HERO_R = 50;            // 小編的碰撞是一顆圓（不翻滾，3D 模型站在圓裡）
   const BEE_R = 15;
+  // 大力蜂（下學期）：比較大隻、很重，撞到線不會彈開，會一直推、退一下再衝撞，能把線推倒
+  const STRONG = root.STRONG || { r: 28, density: 0.02, speed: 0.75, push: 0.7, pushK: 2, back: 0.3, lift: 0.4 };
   const MOUTH = { down: [0, 1], up: [0, -1], left: [-1, 0], right: [1, 0] };
 
   function rng(seed) {
@@ -53,12 +55,20 @@
     M.Composite.add(S.world, add);
 
     S.spawnLeft = level.bees || 12;
+    S.spawned = 0;
+    if (level.strong) {   // 第幾隻是大力蜂：平均分散在整群裡
+      const N = S.spawnLeft;
+      S.bigAt = new Set(Array.from({ length: level.strong }, (_, j) => Math.floor((j + 0.3) * N / level.strong)));
+    }
     M.Events.on(engine, 'collisionStart', (e) => {
       for (const p of e.pairs) {
         const a = p.bodyA.parent, b = p.bodyB.parent;
         // 蜜蜂撞到東西會先彈開一下再衝（像叮一下），不然一大群一直壓著會把粉筆線擠走
         for (const [x, y] of [[a, b], [b, a]]) {
-          if (x.label === 'bee' && y.label !== 'bee' && y.label !== 'hero') x.back = 0.16 + S.rand() * 0.18;
+          if (x.label === 'bee' && y.label !== 'bee' && y.label !== 'hero') {
+            if (!x.big) x.back = 0.16 + S.rand() * 0.18;
+            else if (!(x.push > 0) && !(x.back > 0)) { x.push = STRONG.push * (0.8 + S.rand() * 0.4); x.dash = 0; x.wind = 0; }
+          }
         }
         const o = a === S.hero ? b : b === S.hero ? a : null;
         if (!o || S.state !== 'play') continue;
@@ -200,14 +210,15 @@
     return [bx / n, by / n];
   }
 
-  function spawnBee(S, hive) {
+  function spawnBee(S, hive, big) {
     const r = S.rand;
     const m = hive.mouth, d = hive.dirv;
-    const b = M.Bodies.circle(m.x + (r() - 0.5) * 20, m.y + (r() - 0.5) * 20, BEE_R, {
-      frictionAir: 0.02, friction: 0, restitution: 0.2, density: 0.0005, label: 'bee', slop: 1,
+    const b = M.Bodies.circle(m.x + (r() - 0.5) * 20, m.y + (r() - 0.5) * 20, big ? STRONG.r : BEE_R, {
+      frictionAir: 0.02, friction: big ? 0.3 : 0, restitution: big ? 0 : 0.2, density: big ? STRONG.density : 0.0005, label: 'bee', slop: 1,
     });
     const sp = S.level.speed || 5;
-    b.spd = sp * 1.35 * (0.8 + r() * 0.4);
+    b.big = !!big; b.push = 0;
+    b.spd = sp * 1.35 * (0.8 + r() * 0.4) * (big ? STRONG.speed : 1);
     b.phase = r() * 6.28;
     b.wob = 0.35 + r() * 0.5;
     b.pry = r() < 0.6;          // 封死時：六成去撞線頭把線撬起來，其他的從上面猛撞
@@ -224,7 +235,8 @@
     // 蜂窩輪流吐蜜蜂
     if (S.state === 'play' && S.spawnLeft > 0 && S.t >= S.nextSpawn) {
       const c = S.hives[S.spawnLeft % S.hives.length];
-      spawnBee(S, c);
+      spawnBee(S, c, S.bigAt && S.bigAt.has(S.spawned));
+      S.spawned++;
       S.spawnLeft--;
       S.nextSpawn = S.t + (S.level.gap || 0.16);
     }
@@ -258,7 +270,12 @@
       const st = DT / 1000;
       b.cool -= st;
       if (S.state === 'win') { dx = -tx * 0.4; dy = -1; sp *= 1.4; }
-      else if (b.back > 0) {
+      else if (b.push > 0) {
+        // 大力蜂：貼著東西用力推，推完退一下再衝撞
+        // 往小編那邊「橫著」推、稍微往上抬，線才會被推倒（往下壓只會把線壓得更穩）
+        b.push -= st; dx = rp.x > b.position.x ? 1 : -1; dy = -STRONG.lift; kk = k * STRONG.pushK;
+        if (b.push <= 0) b.back = STRONG.back;
+      } else if (b.back > 0) {
         // 撞到東西彈開，彈完立刻再撲
         b.back -= st; dx = -tx; dy = -ty; sp *= 0.5;
         if (b.back <= 0) { b.dash = 0.3; b.wind = 0; }
@@ -301,5 +318,5 @@
     return used <= s3 ? 3 : used <= s2 ? 2 : 1;
   }
 
-  root.SIM = { create, segOK, commit, step, stars, lineLen, W, H, T, HERO_R, BEE_R, DT, MOUTH };
+  root.SIM = { create, segOK, commit, step, stars, lineLen, W, H, T, HERO_R, BEE_R, DT, MOUTH, STRONG };
 })(typeof window !== 'undefined' ? window : globalThis);

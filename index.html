@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2">
+<link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
 <div id="stage">
@@ -60,6 +60,7 @@
     <p class="sub">兔兔老師畫粉筆線，幫小編擋住整窩蜜蜂</p>
     <div class="t-btns">
       <button class="btn big" id="bStart">開始上課</button>
+      <button class="btn bigbee" id="bBig">下學期：大力蜂來了</button>
       <button class="btn ghost" id="bSelect">選關</button>
     </div>
     <p class="iosTip hide" id="iosTip">iPhone：Safari 按「分享 → 加入主畫面」，從主畫面打開就是全螢幕</p>
@@ -68,8 +69,9 @@
   <!-- 選關 -->
   <div id="select" class="screen hide">
     <div class="sel-head"><button class="tag" id="bBack">返回</button><h2>課表</h2><span id="selTotal"></span></div>
+    <div id="terms"><button data-t="1">上學期</button><button data-t="2">下學期・大力蜂</button></div>
     <div id="grid"></div>
-    <p class="sel-foot">畫一條粉筆線護住小編，撐過倒數就下課。粉筆用得越少，老師蓋的「優」越多。</p>
+    <p class="sel-foot" id="selFoot"></p>
   </div>
 
   <!-- 載入 -->
@@ -78,9 +80,9 @@
   </div>
 </div>
 <script src="vendor/matter.min.js"></script>
-<script src="js/sim.js?v=2"></script>
-<script src="js/levels.js?v=2"></script>
-<script src="js/audio.js?v=2"></script>
+<script src="js/sim.js?v=3"></script>
+<script src="js/levels.js?v=4"></script>
+<script src="js/audio.js?v=3"></script>
 <script>
   // 太舊的瀏覽器不認得 importmap：補上 es-module-shims
   if (!(window.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports('importmap'))) {
@@ -90,6 +92,6 @@
 <script type="importmap">
 {"imports":{"three":"./vendor/three/build/three.module.min.js","three/addons/":"./vendor/three/examples/jsm/"}}
 </script>
-<script type="module" src="js/game.js?v=3"></script>
+<script type="module" src="js/game.js?v=4"></script>
 </body>
 </html>

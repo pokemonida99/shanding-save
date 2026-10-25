@@ -20,9 +20,20 @@
       const d = noiseBuf.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
       if (want) startMusic(want);
     }
-    if (ac.state === 'suspended') ac.resume();
+    if (ac.state === 'suspended' && !away) ac.resume();
   }
   ['touchstart', 'touchend', 'pointerdown', 'keydown'].forEach((ev) => window.addEventListener(ev, unlock, { passive: true }));
+  // 跳出遊戲（切 App、鎖螢幕、切分頁）就把聲音整個停掉，回來再接著放
+  let away = false;
+  function awayChange(h) {
+    away = h;
+    if (!ac) return;
+    if (h) ac.suspend(); else ac.resume();
+  }
+  document.addEventListener('visibilitychange', () => awayChange(document.hidden));
+  window.addEventListener('pagehide', () => awayChange(true));
+  window.addEventListener('pageshow', () => awayChange(document.hidden));
+  window.addEventListener('blur', () => { if (document.hidden) awayChange(true); });
 
   const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
   function env(g, t, a, d, peak) {
@@ -187,7 +198,15 @@
       wood(t, 900, 0.18, sfxBus); noise(t, 0.05, sfxBus, { f: 3000, vol: 0.12 });
       [84, 88, 91, 96].forEach((m, i) => glock(m, t + 0.04 + i * 0.05, 0.08, sfxBus));
     },
-    bee() {   // 飛出蜂窩：短短一聲嗡
+    bee(big) {   // 飛出蜂窩：短短一聲嗡；大力蜂低沉很多、還「哼！」一聲
+      if (big && ac) {
+        const t = ac.currentTime, g = ac.createGain(), bp = ac.createBiquadFilter();
+        bp.type = 'bandpass'; bp.frequency.value = 420; bp.Q.value = 1.1; bp.connect(g); g.connect(sfxBus); env(g, t, 0.03, 0.5, 0.16);
+        const o = osc('sawtooth', 96, t, 0.55, bp); o.frequency.linearRampToValueAtTime(120, t + 0.5);
+        osc('sawtooth', 98.5, t, 0.55, bp, 0.7);
+        kick(t + 0.05, 0.22, sfxBus);
+        return;
+      }
       if (!ac || !limit('bee', 120)) return;
       const t = ac.currentTime, g = ac.createGain(), bp = ac.createBiquadFilter();
       bp.type = 'bandpass'; bp.frequency.value = 900; bp.Q.value = 1.4; bp.connect(g); g.connect(sfxBus); env(g, t, 0.02, 0.22, 0.06);
@@ -200,7 +219,8 @@
       bp.type = 'bandpass'; bp.frequency.value = 1300; bp.Q.value = 1.5; bp.connect(g); g.connect(sfxBus); env(g, t, 0.01, 0.16, 0.05);
       const o = osc('sawtooth', 280, t, 0.2, bp); o.frequency.exponentialRampToValueAtTime(620, t + 0.15);
     },
-    thud() {   // 蜜蜂撞到粉筆線：叩
+    thud(big) {   // 蜜蜂撞到粉筆線：叩；大力蜂是「碰！」
+      if (big && ac && limit('thudBig', 120)) { const t = ac.currentTime; kick(t, 0.34, sfxBus); noise(t, 0.12, sfxBus, { type: 'lowpass', f: 900, vol: 0.22 }); return; }
       if (!ac || !limit('thud', 70)) return; const t = ac.currentTime;
       noise(t, 0.04, sfxBus, { f: 1400, q: 2, vol: 0.13 }); osc('sine', 340 + Math.random() * 80, t, 0.05, sfxBus, 0.05);
     },

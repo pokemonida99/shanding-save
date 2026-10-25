@@ -126,5 +126,30 @@
       sol: [[318, 996], [252, 990], ...ell(360, 960, 112, 200, 180, 360, 26).slice(1, -1), [468, 990], [402, 996]],
     },
   ];
+  LEVELS.forEach((L) => { L.term = 1; });
+
+  // ---------- 下學期：大力蜂來了（strong＝這關有幾隻大力蜂，平均混在蜂群裡） ----------
+  // 大力蜂會把線橫著推走，空曠地上單獨一個拱罩不住；線要靠著柱子、牆，或勾住台子、卡進坑裡
+  const post = (x, h = 130, w = 40) => ({ x, y: 1160 - h / 2, w, h });
+  const again = (i, over) => ({ ...LEVELS[i], tip: undefined, ...over, term: 2 });
+  const TERM2 = [
+    { name: '大力蜂來了', bg: 'class', tip: '大力蜂很壯，會把線推走！讓線靠著兩邊的柱子',
+      ink: 1000, bees: 10, speed: 4.4, strong: 1,
+      solids: [GROUND, post(212), post(508)], hives: [{ x: 150, y: 330 }], hero: { x: 360, y: 1160 },
+      sol: ell(360, 1150, 114, 205) },
+    again(2, { name: '靠牆別動', strong: 2, tip: '線頂住牆和小積木，大力蜂就推不動' }),
+    { name: '兩根柱子', bg: 'class', ink: 1000, bees: 14, speed: 5, strong: 2,
+      solids: [GROUND, post(212, 150), post(508, 150)], hives: [{ x: 120, y: 330 }, { x: 600, y: 330 }], hero: { x: 360, y: 1160 },
+      sol: ell(360, 1150, 114, 205) },
+    again(4, { name: '沙坑防守', strong: 2, tip: '線卡在坑口兩邊，推也推不走' }),
+    again(5, { name: '升旗台', strong: 2 }),
+    again(7, { name: '溜滑梯下', strong: 3 }),
+    again(10, { name: '小板凳', strong: 3, tip: '把線勾到台子底下，大力蜂就推不掉' }),
+    again(11, { name: '置物架', strong: 3 }),
+    again(13, { name: '圖釘海', strong: 3 }),
+    again(14, { name: '蜂王的保鑣', strong: 5 }),
+  ];
+  TERM2.forEach((L) => { L.term = 2; });
+  LEVELS.push(...TERM2);
   root.LEVELS = LEVELS;
 })(typeof window !== 'undefined' ? window : globalThis);
