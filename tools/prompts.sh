@@ -16,3 +16,5 @@ for n in $names; do
   [ -f work/gen/$n.png ] && { echo "skip $n"; continue; }
   $G work/gen/$n.png "${P[$n]}"
 done
+
+# 分享縮圖（連結預覽）：zsh tools/prompts.sh thumb-h thumb-v（參考圖 work/thumb/ref.png＝小編＋兔兔老師三視圖正面）
